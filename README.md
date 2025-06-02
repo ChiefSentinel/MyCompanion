@@ -1,6 +1,5 @@
-# Jan - Local AI Assistant
+# Coming soon
 
-![Jan banner](./JanBanner.png)
 
 <p align="center">
   <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
@@ -19,27 +18,6 @@
   - <a href="https://discord.gg/AsJ8krTT3N">Discord</a>
 </p>
 
-<p align="center">
-⚠️ <b> Jan is currently in Development</b>: Expect breaking changes and bugs!
-</p>
-
-Jan is a ChatGPT-alternative that runs 100% offline on your device. Our goal is to make it easy for a layperson to download and run LLMs and use AI with **full control** and **privacy**.
-
-Jan is powered by [Cortex](https://github.com/menloresearch/cortex.cpp), our embeddable local AI engine that runs on any hardware.
-From PCs to multi-GPU clusters, Jan & Cortex supports universal architectures:
-
-- [x] NVIDIA GPUs (fast)
-- [x] Apple M-series (fast)
-- [x] Apple Intel
-- [x] Linux Debian
-- [x] Windows x64
-
-#### Features:
-
-- [Model Library](https://jan.ai/docs/models/manage-models#add-models) with popular LLMs like Llama, Gemma, Mistral, or Qwen
-- Connect to [Remote AI APIs](https://jan.ai/docs/remote-models/openai) like Groq and OpenRouter
-- Local API Server with OpenAI-equivalent API
-- [Extensions](https://jan.ai/docs/extensions) for customizing Jan
 
 ## Download
 
