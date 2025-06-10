@@ -10,8 +10,8 @@ import { twMerge } from 'tailwind-merge'
 
 import BottomPanel from '@/containers/Layout/BottomPanel'
 import RibbonPanel from '@/containers/Layout/RibbonPanel'
-
 import TopPanel from '@/containers/Layout/TopPanel'
+import StudyDropzone from '@/containers/StudyDropzone'
 
 import { MainViewState } from '@/constants/screens'
 
@@ -239,6 +239,7 @@ const BaseLayout = () => {
           </div>
         )}
       </div>
+      <StudyDropzone categoryId="default" />
       <BottomPanel />
       <ModalAppUpdaterChangelog />
       <ModalAppUpdaterNotAvailable />
