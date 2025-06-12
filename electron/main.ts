@@ -31,6 +31,14 @@ import { registerGlobalShortcuts } from './utils/shortcut'
 import { registerLogger } from './utils/logger'
 import { randomBytes } from 'crypto'
 
+// When running in e2e mode the container environment proxies HTTPS
+// requests which breaks certificate validation in Chromium.
+// Disable GPU and ignore certificate errors to keep Electron stable.
+if (process.env.CI === 'e2e') {
+  app.commandLine.appendSwitch('ignore-certificate-errors')
+  app.disableHardwareAcceleration()
+}
+
 const preloadPath = join(__dirname, 'preload.js')
 const preloadQuickAskPath = join(__dirname, 'preload.quickask.js')
 const rendererPath = join(__dirname, '..', 'renderer')
