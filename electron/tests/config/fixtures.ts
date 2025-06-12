@@ -23,28 +23,25 @@ export let page: Page
 export let appInfo: ElectronAppInfo
 export const TIMEOUT = parseInt(process.env.TEST_TIMEOUT || Constants.TIMEOUT)
 
+/* ───────── Setup / Teardown helpers ─────────────────────────────────────── */
+
 export async function setupElectron() {
   console.log(`TEST TIMEOUT: ${TIMEOUT}`)
-
   process.env.CI = 'e2e'
 
   const latestBuild = findLatestBuild('dist')
   expect(latestBuild).toBeTruthy()
 
-  // parse the packaged Electron app and find paths and other info
   appInfo = parseElectronApp(latestBuild)
   expect(appInfo).toBeTruthy()
 
   electronApp = await electron.launch({
-    args: [appInfo.main, '--no-sandbox'], // main file from package.json
-    executablePath: appInfo.executable, // path to the Electron executable
-    // recordVideo: { dir: Constants.VIDEO_DIR }, // Specify the directory for video recordings
+    args: [appInfo.main, '--no-sandbox'],
+    executablePath: appInfo.executable,
   })
-  await stubDialog(electronApp, 'showMessageBox', { response: 1 })
 
-  page = await electronApp.firstWindow({
-    timeout: TIMEOUT,
-  })
+  await stubDialog(electronApp, 'showMessageBox', { response: 1 })
+  page = await electronApp.firstWindow({ timeout: TIMEOUT })
 }
 
 export async function teardownElectron() {
@@ -52,10 +49,8 @@ export async function teardownElectron() {
   await electronApp.close()
 }
 
-/**
- * this fixture is needed to record and attach videos / screenshot on failed tests when
- * tests are run in serial mode (i.e. browser is not closed between tests)
- */
+/* ───────── Playwright fixture extension ─────────────────────────────────── */
+
 export const test = base.extend<
   {
     commonActions: CommonActions
@@ -68,9 +63,11 @@ export const test = base.extend<
   commonActions: async ({ request }, use, testInfo) => {
     await use(new CommonActions(page, testInfo))
   },
+
   hubPage: async ({ commonActions }, use) => {
     await use(new HubPage(page, commonActions))
   },
+
   createVideoContext: [
     async ({ playwright }, use) => {
       const context = electronApp.context()
@@ -84,11 +81,11 @@ export const test = base.extend<
       await use(page)
 
       if (testInfo.status !== testInfo.expectedStatus) {
-        const path = await createVideoContext.pages()[0].video()?.path()
+        const videoPath = await createVideoContext.pages()[0].video()?.path()
         await createVideoContext.close()
-        await testInfo.attach('video', {
-          path: path,
-        })
+        if (videoPath) {
+          await testInfo.attach('video', { path: videoPath })
+        }
       }
     },
     { scope: 'test', auto: true },
@@ -97,8 +94,6 @@ export const test = base.extend<
   attachScreenshotsToReport: [
     async ({ commonActions }, use, testInfo) => {
       await use()
-
-      // After the test, we can check whether the test passed or failed.
       if (testInfo.status !== testInfo.expectedStatus) {
         await commonActions.takeScreenshot('')
       }
@@ -107,7 +102,10 @@ export const test = base.extend<
   ],
 })
 
+/* ───────── Global hooks ─────────────────────────────────────────────────── */
+
 test.beforeAll(async () => {
+  // clean residual test data
   rmSync(path.join(__dirname, '../../test-data'), {
     recursive: true,
     force: true,
@@ -115,12 +113,16 @@ test.beforeAll(async () => {
 
   test.setTimeout(TIMEOUT)
   await setupElectron()
-  await page.waitForSelector('img[alt="Jan - Logo"]', {
-    state: 'visible',
+
+  /* NEW: wait for the deterministic ready marker from main process */
+  await electronApp.waitForEvent('console', {
+    predicate: (msg) => msg.text() === '▶ App is ready for tests',
     timeout: TIMEOUT,
   })
 })
 
 test.afterAll(async () => {
-  // teardownElectron()
+  // If you want to fully close Electron at the end of the suite, uncomment:
+  // await teardownElectron()
 })
+

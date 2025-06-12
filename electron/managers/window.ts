@@ -17,6 +17,7 @@ class WindowManager {
   private _mainWindowVisible = false
 
   private deeplink: string | undefined
+
   /**
    * Creates a new window instance.
    * @returns The created window instance.
@@ -38,10 +39,8 @@ class WindowManager {
       },
     })
 
+    /* Windows / Linux deeplink workaround */
     if (process.platform === 'win32' || process.platform === 'linux') {
-      /// This is work around for windows deeplink.
-      /// second-instance event is not fired when app is not open, so the app
-      /// does not received the deeplink.
       const commandLine = process.argv.slice(1)
       if (commandLine.length > 0) {
         const url = commandLine[0]
@@ -49,41 +48,45 @@ class WindowManager {
       }
     }
 
-    this.mainWindow.on('resized', () => {
-      saveBounds(this.mainWindow?.getBounds())
+    /* Persist window bounds */
+    this.mainWindow.on('resized', () => saveBounds(this.mainWindow?.getBounds()))
+    this.mainWindow.on('moved', () => saveBounds(this.mainWindow?.getBounds()))
+
+    /* Load frontend app */
+    await this.mainWindow.loadURL(startUrl)
+
+    // >>> NEW: emit deterministic marker so Playwright knows the UI is ready
+    this.mainWindow.webContents.once('did-finish-load', () => {
+      // Do not change this string – tests wait for it verbatim
+      console.log('▶ App is ready for tests')
     })
+    // <<< END NEW
 
-    this.mainWindow.on('moved', () => {
-      saveBounds(this.mainWindow?.getBounds())
-    })
-
-    /* Load frontend app to the window */
-    this.mainWindow.loadURL(startUrl)
-
-    /* Open external links in the default browser */
+    /* Open external links in default browser */
     this.mainWindow.webContents.setWindowOpenHandler(({ url }) => {
       shell.openExternal(url)
       return { action: 'deny' }
     })
 
-    app.on('before-quit', function () {
+    app.on('before-quit', () => {
       isAppQuitting = true
     })
 
-    windowManager.mainWindow?.on('close', function (evt) {
-      // Feature Toggle for Quick Ask
+    /* Feature-toggle logic for Quick Ask window */
+    this.mainWindow.on('close', (evt) => {
       if (!getAppConfigurations().quick_ask) return
-
       if (!isAppQuitting) {
         evt.preventDefault()
-        windowManager.hideMainWindow()
+        this.hideMainWindow()
       }
     })
 
-    windowManager.mainWindow?.on('ready-to-show', function () {
-      windowManager.mainWindow?.show()
+    this.mainWindow.on('ready-to-show', () => {
+      this.mainWindow?.show()
     })
   }
+
+  /* ───────── Quick-Ask window helpers ──────────────────────────────────── */
 
   createQuickAskWindow(preloadPath: string, startUrl: string): void {
     this._quickAskWindow = new BrowserWindow({
@@ -178,7 +181,7 @@ class WindowManager {
   }
 
   /**
-   *  Send main view state to the main app.
+   * Send main view state to the main app.
    */
   sendMainViewState(route: string) {
     if (this.mainWindow && !this.mainWindow.isDestroyed()) {
@@ -213,3 +216,4 @@ class WindowManager {
 }
 
 export const windowManager = new WindowManager()
+
