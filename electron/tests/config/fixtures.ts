@@ -21,9 +21,9 @@ import * as path from 'path'
 export let electronApp: ElectronApplication
 export let page: Page
 export let appInfo: ElectronAppInfo
-export const TIMEOUT = parseInt(process.env.TEST_TIMEOUT || Constants.TIMEOUT)
+export const TIMEOUT = parseInt(process.env.TEST_TIMEOUT || Constants.TIMEOUT, 10)
 
-/* ───────── Setup / Teardown helpers ─────────────────────────────────────── */
+/* ───────── Setup / Teardown helpers ────────────────────────────────────── */
 
 export async function setupElectron() {
   console.log(`TEST TIMEOUT: ${TIMEOUT}`)
@@ -49,7 +49,7 @@ export async function teardownElectron() {
   await electronApp.close()
 }
 
-/* ───────── Playwright fixture extension ─────────────────────────────────── */
+/* ───────── Playwright fixture extension ────────────────────────────────── */
 
 export const test = base.extend<
   {
@@ -102,21 +102,19 @@ export const test = base.extend<
   ],
 })
 
-/* ───────── Global hooks ─────────────────────────────────────────────────── */
+/* ───────── Global hooks ───────────────────────────────────────────────── */
 
 test.beforeAll(async () => {
-  // clean residual test data
-  rmSync(path.join(__dirname, '../../test-data'), {
-    recursive: true,
-    force: true,
-  })
+  // Clean residual test data
+  rmSync(path.join(__dirname, '../../test-data'), { recursive: true, force: true })
 
   test.setTimeout(TIMEOUT)
   await setupElectron()
 
-  /* NEW: wait for the deterministic ready marker from main process */
-  await electronApp.waitForEvent('console', {
-    predicate: (msg) => msg.text() === '▶ App is ready for tests',
+  /* Wait for the main-process stdout marker */
+  await electronApp.waitForEvent('stdout', {
+    predicate: (chunk) =>
+      chunk.toString().includes('▶ App is ready for tests'),
     timeout: TIMEOUT,
   })
 })
