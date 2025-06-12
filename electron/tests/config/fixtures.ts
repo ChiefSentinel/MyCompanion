@@ -105,19 +105,15 @@ export const test = base.extend<
 /* ───────── Global hooks ───────────────────────────────────────────────── */
 
 test.beforeAll(async () => {
-  // Clean residual test data
-  rmSync(path.join(__dirname, '../../test-data'), { recursive: true, force: true })
+  rmSync(path.join(__dirname, '../../test-data'), { recursive: true, force: true });
 
-  test.setTimeout(TIMEOUT)
-  await setupElectron()
+  test.setTimeout(TIMEOUT);
+  await setupElectron();
 
-  /* Wait for the main-process stdout marker */
-  await electronApp.waitForEvent('stdout', {
-    predicate: (chunk) =>
-      chunk.toString().includes('▶ App is ready for tests'),
-    timeout: TIMEOUT,
-  })
-})
+  // Wait until the first renderer has finished parsing the document.
+  await page.waitForLoadState('domcontentloaded', { timeout: TIMEOUT });
+});
+
 
 test.afterAll(async () => {
   // If you want to fully close Electron at the end of the suite, uncomment:
